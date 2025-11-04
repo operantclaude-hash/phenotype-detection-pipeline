@@ -1,0 +1,30 @@
+# Default configuration for phenotype detection pipeline
+
+# Data paths
+data:
+  hdf5_dir: "/path/to/hdf5_neurons"
+  output_dir: "./dataset"
+  bad_wells: ["A1", "A2", "A3"]
+
+# Training parameters
+training:
+  batch_size: 32
+  epochs: 100
+  learning_rate: 0.001
+  num_workers: 4
+  architecture: "resnet18"
+
+# Channels to train
+channels:
+  - "RFP1"
+  - "Halo"
+
+# Tasks
+tasks:
+  - "6class"
+
+# Evaluation
+evaluation:
+  channels:
+    - "RFP1"
+    - "Halo"
