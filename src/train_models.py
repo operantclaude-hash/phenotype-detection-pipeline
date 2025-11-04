@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Import the original training module
-sys.path.insert(0, '/mnt/project')
+sys.path.insert(0, 'src')
 from train_lightning import AggregationClassifier, AggregationDataModule
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
