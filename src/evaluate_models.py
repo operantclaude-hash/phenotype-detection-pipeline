@@ -16,7 +16,7 @@ from tqdm import tqdm
 import json
 
 # Import training modules
-sys.path.insert(0, '/mnt/project')
+sys.path.insert(0, 'src')
 from train_lightning import AggregationClassifier, AggregationDataModule
 
 
