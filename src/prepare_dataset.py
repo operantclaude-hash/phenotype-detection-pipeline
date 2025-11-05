@@ -196,7 +196,7 @@ class A2ScreenDatasetBuilder:
                     return False
                 
                 # Extract T0 (index 0) and T15 (index 15)
-                # T0 = first timepoint, T15 = 16th timepoint (0-indexed)
+                # T0 = index 0, T15 = index 15 (0-indexed, so 16th timepoint)
                 t0_idx = 0
                 t15_idx = 15
                 
@@ -247,7 +247,7 @@ class A2ScreenDatasetBuilder:
         # T15 metadata (calling it T16 in the label for user clarity)
         t15_metadata = {
             **base_metadata,
-            'timepoint': 'T16',  # User calls it T16 (16th timepoint)
+            'timepoint': 'T15',  # 16th timepoint (index 15, 0-indexed)
             'timepoint_idx': t15_idx,
             'rfp1_path': str(rfp1_t15_path.relative_to(self.output_dir)),
             'halo_path': str(halo_t15_path.relative_to(self.output_dir))

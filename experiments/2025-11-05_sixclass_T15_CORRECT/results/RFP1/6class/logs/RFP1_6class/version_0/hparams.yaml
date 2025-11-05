@@ -1,0 +1,14 @@
+architecture: resnet18
+class_names:
+- Control_T0
+- APPV717I_T0
+- Control_0ms_T16
+- Control_10000ms_T16
+- APPV717I_0ms_T16
+- APPV717I_10000ms_T16
+class_weights: null
+dropout: 0.5
+learning_rate: 0.001
+num_classes: 6
+pretrained: true
+weight_decay: 0.0001
