@@ -65,7 +65,19 @@ CLASSIFICATION_CONFIGS = {
         ],
         'description': '8-class: Cell line × Stimulation × Timepoint (full model)'
     },
-    '6class': {
+    'binary': {
+        'label_column': 'label_binary',
+        'num_classes': 2,
+        'class_names': ['Control', 'APPV717I'],
+        'description': 'Binary: Control vs APPV717I'
+    },
+        'binary': {
+        'label_column': 'label_binary',
+        'num_classes': 2,
+        'class_names': ['Control', 'APPV717I'],
+        'description': 'Binary: Control vs APPV717I'
+    },
+        '6class': {
         'label_column': 'label_6class',
         'num_classes': 6,
         'class_names': [
