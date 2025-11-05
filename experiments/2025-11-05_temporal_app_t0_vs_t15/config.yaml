@@ -1,0 +1,36 @@
+experiment:
+  name: "experiment_name"
+  date: "YYYY-MM-DD"
+  description: |
+    What this experiment tests
+  researcher: "your_name"
+  hypothesis: |
+    What you expect to find
+
+data:
+  hdf5_dir: "/path/to/hdf5_neurons"
+  output_dir: "./experiments/YYYY-MM-DD_name/dataset"
+  bad_wells: []
+  timepoints:
+    baseline: "T0"
+    endpoint: "T16"
+  classification:
+    type: "6class"
+    classes: []
+
+training:
+  channels: ["RFP1", "Halo"]
+  architecture: "resnet18"
+  batch_size: 32
+  max_epochs: 100
+  learning_rate: 0.001
+  num_workers: 4
+
+evaluation:
+  metrics:
+    - accuracy
+    - confusion_matrix
+    - temporal_analysis
+
+notes: |
+  Any additional notes

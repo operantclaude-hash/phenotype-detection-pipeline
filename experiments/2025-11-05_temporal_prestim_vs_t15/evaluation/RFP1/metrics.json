@@ -1,0 +1,5 @@
+{
+  "test_accuracy": 0.9869565217391304,
+  "num_classes": 2,
+  "channel": "RFP1"
+}

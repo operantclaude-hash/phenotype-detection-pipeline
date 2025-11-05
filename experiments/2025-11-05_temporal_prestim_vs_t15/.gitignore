@@ -1,0 +1,11 @@
+# Don't commit large files
+dataset/images/
+*.h5
+*.hdf5
+*.ckpt
+*.pth
+
+# Keep these
+!dataset/metadata.csv
+!config.yaml
+!README.md

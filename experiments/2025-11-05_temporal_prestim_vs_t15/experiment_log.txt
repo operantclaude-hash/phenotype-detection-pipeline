@@ -1,0 +1,6 @@
+Experiment Log: temporal_prestim_vs_t15
+Created: 2025-11-05
+=====================================
+
+Wed Nov  5 02:50:39 AM EST 2025: Experiment created
+

@@ -1,0 +1,86 @@
+# Experiment Configuration Template
+# Copy this for each new experiment
+
+experiment:
+  name: "6class_t0-t16_baseline"
+  date: "2024-11-04"
+  description: |
+    Baseline 6-class model to detect phenotypes while avoiding artifacts.
+    Collapses T0 pre-stimulation, separates T16 post-stimulation.
+  
+  researcher: "operantclaude-hash"
+  
+  # Purpose and hypothesis
+  hypothesis: |
+    By collapsing pre-stimulation timepoints at T0, the model will be forced
+    to learn biological phenotypes that emerge after treatment rather than
+    technical artifacts like well position.
+
+# Data configuration
+data:
+  hdf5_dir: "/gladstone/finkbeiner/linsley/GXYTMPS/Jeremy/GXYTMP-A2screenPlate2/hdf5_neurons"
+  output_dir: "./experiments/2024-11-04_6class_t0-t16/dataset"
+  
+  # Wells to exclude
+  bad_wells: 
+    - A1
+    - A2
+    - A3
+    - A5
+    - A12
+    # ... rest of bad wells
+  
+  # Timepoints to use
+  timepoints:
+    baseline: "T0"   # Index 0
+    endpoint: "T16"  # Index 15
+  
+  # Class structure
+  classification:
+    type: "6class"
+    collapse_pre_stim: true
+    classes:
+      - Control_T0
+      - APPV717I_T0
+      - Control_0ms_T16
+      - Control_10000ms_T16
+      - APPV717I_0ms_T16
+      - APPV717I_10000ms_T16
+
+# Training configuration
+training:
+  channels:
+    - RFP1
+    - Halo
+  
+  architecture: "resnet18"
+  batch_size: 32
+  max_epochs: 100
+  learning_rate: 0.001
+  num_workers: 4
+  
+  early_stopping:
+    patience: 15
+    monitor: "val_acc"
+
+# Evaluation
+evaluation:
+  metrics:
+    - accuracy
+    - per_class_accuracy
+    - confusion_matrix
+    - temporal_analysis
+  
+# Expected results
+expected_results:
+  baseline_accuracy: 0.167  # Random chance (1/6)
+  target_accuracy: 0.45     # Good performance
+  excellent_accuracy: 0.55  # Excellent performance
+
+# Notes
+notes: |
+  - First run of 6-class pipeline in new environment
+  - Both RFP1 and Halo channels trained
+  - RFP1 achieved 54.3% accuracy
+  - Halo achieved 51.4% accuracy
+  - Early stopping triggered around epoch 40-50

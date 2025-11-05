@@ -1,0 +1,6 @@
+Experiment Log: temporal_app_t0_vs_t16
+Created: 2025-11-05
+=====================================
+
+Wed Nov  5 02:30:33 AM EST 2025: Experiment created
+

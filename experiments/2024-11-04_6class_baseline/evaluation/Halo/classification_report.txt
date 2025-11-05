@@ -1,0 +1,12 @@
+                      precision    recall  f1-score   support
+
+          Control_T0      0.376     0.435     0.403       216
+         APPV717I_T0      0.528     0.589     0.557       350
+     Control_0ms_T16      0.630     0.763     0.690       566
+ Control_10000ms_T16      0.412     0.199     0.268       141
+    APPV717I_0ms_T16      0.423     0.456     0.439       206
+APPV717I_10000ms_T16      0.405     0.245     0.305       347
+
+            accuracy                          0.514      1826
+           macro avg      0.462     0.448     0.444      1826
+        weighted avg      0.497     0.514     0.497      1826

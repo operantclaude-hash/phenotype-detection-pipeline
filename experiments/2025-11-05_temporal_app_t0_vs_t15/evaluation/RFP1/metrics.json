@@ -1,0 +1,5 @@
+{
+  "test_accuracy": 1.0,
+  "num_classes": 2,
+  "channel": "RFP1"
+}
