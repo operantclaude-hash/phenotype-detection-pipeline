@@ -1,0 +1,10 @@
+architecture: resnet18
+class_names:
+- Control
+- APPV717I
+class_weights: null
+dropout: 0.5
+learning_rate: 0.001
+num_classes: 2
+pretrained: true
+weight_decay: 0.0001

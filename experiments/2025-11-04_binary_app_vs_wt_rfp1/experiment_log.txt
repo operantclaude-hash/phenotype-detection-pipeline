@@ -1,0 +1,6 @@
+Experiment Log: binary_app_vs_wt_rfp1
+Created: 2025-11-04
+=====================================
+
+Tue Nov  4 06:33:02 PM EST 2025: Experiment created
+

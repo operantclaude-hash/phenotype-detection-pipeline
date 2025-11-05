@@ -1,0 +1,16 @@
+{
+  "test_accuracy": 0.5432639649507119,
+  "per_class_accuracy": {
+    "Control_T0": 0.4212962962962963,
+    "APPV717I_T0": 0.4857142857142857,
+    "Control_0ms_T16": 0.8939929328621908,
+    "Control_10000ms_T16": 0.3191489361702128,
+    "APPV717I_0ms_T16": 0.32038834951456313,
+    "APPV717I_10000ms_T16": 0.3285302593659942
+  },
+  "confusion_matrix_shape": [
+    6,
+    6
+  ],
+  "num_test_samples": 1826
+}

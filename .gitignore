@@ -214,3 +214,35 @@ results_6class/
 *.npy
 *.ckpt
 
+
+# Experiment data (already in .gitignore but being explicit)
+experiments/*/dataset/images/
+experiments/*/results/*.ckpt
+experiments/*/*.h5
+experiments/*/*.hdf5
+
+# Keep these experiment files
+!experiments/*/config.yaml
+!experiments/*/README.md
+!experiments/*/metadata.csv
+!experiments/*/logs/*.log
+!experiments/*/evaluation/**/*.png
+!experiments/*/evaluation/**/*.json
+!experiments/*/analysis/**/*.png
+!experiments/*/analysis/**/*.json
+
+# Experiment data (already in .gitignore but being explicit)
+experiments/*/dataset/images/
+experiments/*/results/*.ckpt
+experiments/*/*.h5
+experiments/*/*.hdf5
+
+# Keep these experiment files
+!experiments/*/config.yaml
+!experiments/*/README.md
+!experiments/*/metadata.csv
+!experiments/*/logs/*.log
+!experiments/*/evaluation/**/*.png
+!experiments/*/evaluation/**/*.json
+!experiments/*/analysis/**/*.png
+!experiments/*/analysis/**/*.json
