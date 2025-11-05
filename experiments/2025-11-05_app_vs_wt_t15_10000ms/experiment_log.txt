@@ -1,0 +1,6 @@
+Experiment Log: app_vs_wt_t15_10000ms
+Created: 2025-11-05
+=====================================
+
+Wed Nov  5 03:10:08 PM EST 2025: Experiment created
+

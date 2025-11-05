@@ -1,0 +1,6 @@
+Experiment Log: app_prestim_vs_poststim_T15_CORRECT
+Created: 2025-11-05
+=====================================
+
+Wed Nov  5 03:38:35 PM EST 2025: Experiment created
+
