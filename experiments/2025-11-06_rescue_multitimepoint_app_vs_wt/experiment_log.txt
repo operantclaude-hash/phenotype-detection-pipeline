@@ -1,0 +1,6 @@
+Experiment Log: rescue_multitimepoint_app_vs_wt
+Created: 2025-11-06
+=====================================
+
+Thu Nov  6 10:35:10 PM EST 2025: Experiment created
+
