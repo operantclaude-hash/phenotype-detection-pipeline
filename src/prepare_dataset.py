@@ -58,7 +58,7 @@ class A2ScreenDatasetBuilder:
         
         Condition mapping:
         - A* or B* → Control
-        - C* or D* → APPV717I
+        - C* through P* → APPV717I
         
         Only includes wells: A1-A24, B1-B24, C1-C24, D1-D24 (all DMSO)
         
@@ -83,7 +83,7 @@ class A2ScreenDatasetBuilder:
             
             # Check if well is in valid range (A-D rows, 1-24 columns)
             row = well[0]
-            if row not in ['A', 'B', 'C', 'D']:
+            if row not in list('ABCDEFGHIJKLMNOP'):
                 return None  # Skip wells outside A-D rows
             
             col_match = re.match(r'[A-Z](\d+)', well)
@@ -95,10 +95,8 @@ class A2ScreenDatasetBuilder:
             # Determine condition from well row
             if row in ['A', 'B']:
                 condition = 'Control'
-            elif row in ['C', 'D']:
+            else:  # C-P are all APPV717I
                 condition = 'APPV717I'
-            else:
-                return None
             
             # All A-D rows are DMSO for this experiment
             name = 'DMSO'
@@ -108,8 +106,6 @@ class A2ScreenDatasetBuilder:
                 stimulation = '10000ms'
             elif tile in [1, 4]:
                 stimulation = '0ms'
-            else:
-                return None
             
             return {
                 'condition': condition,
@@ -138,8 +134,6 @@ class A2ScreenDatasetBuilder:
         # Scale to 0-255
         if p_high > p_low:
             img = (img - p_low) / (p_high - p_low) * 255
-        else:
-            img = np.zeros_like(img)
         
         return img.astype(np.uint8)
     
@@ -192,8 +186,6 @@ class A2ScreenDatasetBuilder:
                     
                     if num_timepoints < 16:
                         return False
-                else:
-                    return False
                 
                 # Extract T0 (index 0) and T15 (index 15)
                 # T0 = index 0, T15 = index 15 (0-indexed, so 16th timepoint)
@@ -404,7 +396,7 @@ def main():
     print()
     print("Requirements:")
     print("  - Filename format: A2screenPlate2_{WELL}_{TILE}_{NEURON}.h5")
-    print("  - Wells: A1-A24, B1-B24, C1-C24, D1-D24 only")
+    print("  - Wells: A1-P24 (all rows A-P, columns 1-24)")
     print("  - Timepoints: >=16 (T0 to T15)")
     print("  - Channels: 2 (RFP1 and Halo)")
     print("  - Condition: A/B=Control, C/D=APPV717I")
