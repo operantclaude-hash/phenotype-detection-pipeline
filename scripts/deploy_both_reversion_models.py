@@ -30,23 +30,23 @@ class ThreeChannelDeployDataset(Dataset):
     
     def __getitem__(self, idx):
         row = self.metadata.iloc[idx]
-        
+
         rfp1_path = self.root_dir / row['rfp1_path']
         halo_path = self.root_dir / row['halo_path']
         halo_masked_path = self.root_dir / row['halo_masked_path']
-        
+
         rfp1 = Image.open(rfp1_path).convert('L')
         halo = Image.open(halo_path).convert('L')
         halo_masked = Image.open(halo_masked_path).convert('L')
-        
+
         rfp1_t = transforms.ToTensor()(rfp1)
         halo_t = transforms.ToTensor()(halo)
         halo_masked_t = transforms.ToTensor()(halo_masked)
-        
+
         img = torch.cat([rfp1_t, halo_t, halo_masked_t], dim=0)
         img = self.normalize(img)
-        
-        return img, 0
+
+        return img, idx  # Return index for explicit tracking
 
 def deploy_reversion(checkpoint_path, metadata_path, root_dir, output_file, class_names, prefix):
     print(f"\n{'='*70}")
@@ -66,18 +66,29 @@ def deploy_reversion(checkpoint_path, metadata_path, root_dir, output_file, clas
     
     dataset = ThreeChannelDeployDataset(metadata, root_dir)
     dataloader = DataLoader(dataset, batch_size=32, num_workers=4, shuffle=False)
-    
+
     all_probs = []
+    all_indices = []
     with torch.no_grad():
-        for images, _ in tqdm(dataloader, desc=f"Scoring {prefix}"):
+        for images, indices in tqdm(dataloader, desc=f"Scoring {prefix}"):
             images = images.to(device)
             logits = model(images)
             probs = torch.softmax(logits, dim=1)
             all_probs.append(probs.cpu().numpy())
-    
+            all_indices.append(indices.cpu().numpy())
+
     probs = np.vstack(all_probs)
-    
-    # Add predictions with prefix
+    indices = np.concatenate(all_indices)
+
+    # Verify index alignment (critical safety check)
+    assert len(indices) == len(metadata), \
+        f"Sample count mismatch! Expected {len(metadata)}, got {len(indices)}"
+    assert np.array_equal(indices, np.arange(len(metadata))), \
+        "Index order changed! Predictions would be misaligned with neurons."
+
+    print(f"✓ Index alignment verified: {len(indices)} samples processed in correct order")
+
+    # Add predictions with prefix (using verified indices)
     metadata[f'{prefix}_conf_class0'] = probs[:, 0]
     metadata[f'{prefix}_conf_class1'] = probs[:, 1]
     metadata[f'{prefix}_predicted'] = np.where(probs[:, 0] > probs[:, 1], class_names[0], class_names[1])
