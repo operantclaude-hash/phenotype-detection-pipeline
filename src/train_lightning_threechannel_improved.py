@@ -210,26 +210,69 @@ class ThreeChannelDataModule(pl.LightningDataModule):
         print(f"\nClasses: {unique_labels}")
         print(f"Class counts: {class_counts.to_dict()}")
         print(f"Class weights: {self.class_weights.numpy()}")
-        
-        # Well-based splits (no data leakage)
-        unique_wells = metadata['well'].unique()
-        well_labels = metadata.groupby('well')['class_label'].first()
-        
-        wells_train_val, wells_test = train_test_split(
-            unique_wells, test_size=0.15, random_state=42, stratify=well_labels
-        )
-        
-        well_labels_train_val = well_labels[wells_train_val]
-        wells_train, wells_val = train_test_split(
-            wells_train_val, test_size=0.15/(1-0.15), random_state=42,
-            stratify=well_labels_train_val
-        )
-        
-        train_df = metadata[metadata['well'].isin(wells_train)]
-        val_df = metadata[metadata['well'].isin(wells_val)]
-        test_df = metadata[metadata['well'].isin(wells_test)]
-        
+
+        # Stratification strategy: neuron-based for reversion, well-based otherwise
+        # This prevents data leakage while handling mixed-class scenarios
+        if 'neuron_id' in metadata.columns:
+            # Neuron-based stratification (for reversion datasets with temporal pairs)
+            print("\n⚠️  Using NEURON-based stratification (keeps temporal pairs together)")
+            unique_neurons = metadata['neuron_id'].unique()
+
+            # Use majority class per neuron for stratification
+            neuron_labels = metadata.groupby('neuron_id')['class_label'].agg(
+                lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]
+            )
+
+            neurons_train_val, neurons_test = train_test_split(
+                unique_neurons, test_size=0.15, random_state=42,
+                stratify=neuron_labels
+            )
+
+            neuron_labels_train_val = neuron_labels[neurons_train_val]
+            neurons_train, neurons_val = train_test_split(
+                neurons_train_val, test_size=0.15/(1-0.15), random_state=42,
+                stratify=neuron_labels_train_val
+            )
+
+            train_df = metadata[metadata['neuron_id'].isin(neurons_train)]
+            val_df = metadata[metadata['neuron_id'].isin(neurons_val)]
+            test_df = metadata[metadata['neuron_id'].isin(neurons_test)]
+
+        else:
+            # Well-based stratification (standard case)
+            print("\n⚠️  Using WELL-based stratification")
+            unique_wells = metadata['well'].unique()
+
+            # Use majority class per well (not .first()!)
+            well_labels = metadata.groupby('well')['class_label'].agg(
+                lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]
+            )
+
+            wells_train_val, wells_test = train_test_split(
+                unique_wells, test_size=0.15, random_state=42, stratify=well_labels
+            )
+
+            well_labels_train_val = well_labels[wells_train_val]
+            wells_train, wells_val = train_test_split(
+                wells_train_val, test_size=0.15/(1-0.15), random_state=42,
+                stratify=well_labels_train_val
+            )
+
+            train_df = metadata[metadata['well'].isin(wells_train)]
+            val_df = metadata[metadata['well'].isin(wells_val)]
+            test_df = metadata[metadata['well'].isin(wells_test)]
+
         print(f"Samples: Train={len(train_df)}, Val={len(val_df)}, Test={len(test_df)}")
+
+        # Verify stratification balance
+        train_dist = train_df['class_label'].value_counts(normalize=True).sort_index()
+        val_dist = val_df['class_label'].value_counts(normalize=True).sort_index()
+        test_dist = test_df['class_label'].value_counts(normalize=True).sort_index()
+
+        print("\nClass distribution:")
+        print(f"Train: {dict(train_dist)}")
+        print(f"Val:   {dict(val_dist)}")
+        print(f"Test:  {dict(test_dist)}")
         
         self.train_dataset = ThreeChannelDataset(train_df, self.root_dir, is_train=True)
         self.val_dataset = ThreeChannelDataset(val_df, self.root_dir, is_train=False)
