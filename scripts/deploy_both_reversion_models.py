@@ -108,7 +108,7 @@ if __name__ == '__main__':
         metadata_path=args.metadata,
         root_dir=args.root_dir,
         output_file=output_dir / 'reversion_model1_predictions.csv',
-        class_names=['Aggregated', 'Non-aggregated'],
+        class_names=['Non-aggregated', 'Aggregated'],  # Fixed: match training order
         prefix='rev_m1'
     )
     
@@ -118,7 +118,7 @@ if __name__ == '__main__':
         metadata_path=args.metadata,
         root_dir=args.root_dir,
         output_file=output_dir / 'reversion_model2_predictions.csv',
-        class_names=['APP_Aggregated', 'APP_Non-aggregated'],
+        class_names=['APP_Non-aggregated', 'APP_Aggregated'],  # Fixed: match training order
         prefix='rev_m2'
     )
     
