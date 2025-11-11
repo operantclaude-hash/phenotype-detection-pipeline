@@ -31,14 +31,16 @@ class ThreeChannelDataset(Dataset):
             std=[0.229, 0.224, 0.225]
         )
         
-        # More aggressive augmentation for training
+        # Geometric augmentation for training (NO ColorJitter for fluorescence!)
+        # ColorJitter is scientifically invalid for fluorescence microscopy because
+        # intensity values have biological meaning (protein abundance)
         if is_train:
             self.augment = transforms.Compose([
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomVerticalFlip(p=0.5),
-                transforms.RandomRotation(30),  # Increased
-                transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # Add translation
-                transforms.ColorJitter(brightness=0.3, contrast=0.3),  # More aggressive
+                transforms.RandomRotation(30),
+                transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+                # REMOVED: ColorJitter - destroys quantitative fluorescence signal
             ])
         else:
             self.augment = None
