@@ -1,0 +1,7 @@
+condition,val_accuracy_mean,val_accuracy_std,val_accuracy_min,val_accuracy_max,val_accuracy_count
+0ms_baseline,0.7485,0.0041,0.744,0.754,10
+10000ms_post_stim,0.7554,0.0044,0.748,0.762,10
+APP_full_timeseries,0.7308,0.0293,0.695,0.775,10
+APP_last_timepoint_only,0.6956,0.0083,0.6831,0.706,10
+WT_full_timeseries,0.598,0.0643,0.54,0.72,10
+WT_last_timepoint_only,0.6085,0.0105,0.5839,0.6233,10
