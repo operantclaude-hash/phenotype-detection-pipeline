@@ -111,12 +111,23 @@ class RescueThreeChannelDataset(Dataset):
 
         # Load 3 channels with CORRECT normalization
         imgs = []
-        for path_key, channel_name in [('rfp1_path', 'rfp1'),
-                                        ('halo_path', 'halo'),
-                                        ('halo_masked_path', 'halo')]:
+
+        # RFP1 and Halo from root_dir
+        for path_key, channel_name in [('rfp1_path', 'rfp1'), ('halo_path', 'halo')]:
             img_path = root_dir / row[path_key]
             img_tensor = self.load_and_normalize_channel(img_path, channel_name)
             imgs.append(img_tensor)
+
+        # Halo_masked from separate directory (if halo_masked_root exists)
+        if 'halo_masked_root' in row:
+            halo_masked_root = Path(row['halo_masked_root'])
+            halo_masked_path = halo_masked_root / row['halo_masked_path']
+        else:
+            # Fallback to old structure
+            halo_masked_path = root_dir / row['halo_masked_path']
+
+        halo_masked_tensor = self.load_and_normalize_channel(halo_masked_path, 'halo')  # Use 'halo' percentiles
+        imgs.append(halo_masked_tensor)
 
         # Concatenate to 3-channel image
         img = torch.cat(imgs, dim=0)

@@ -25,7 +25,11 @@ class ThreeChannelDataset(Dataset):
         self.root_dir = Path(root_dir)
         self.is_train = is_train
         
-        # ImageNet normalization
+        # Fluorescence microscopy normalization (computed from 500 training images)
+        # RFP1, Halo, Halo_masked channels have VERY different statistics than ImageNet RGB:
+        # - Fluorescence mean: [0.223, 0.207, 0.051] vs ImageNet: [0.485, 0.456, 0.406]
+        # - Fluorescence std:  [0.164, 0.170, 0.160] vs ImageNet: [0.229, 0.224, 0.225]
+        # Using ImageNet normalization on fluorescence data causes severe distribution mismatch!
         self.normalize = transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225]
@@ -59,6 +63,12 @@ class ThreeChannelDataset(Dataset):
         halo = Image.open(halo_path).convert('L')
         halo_masked = Image.open(halo_masked_path).convert('L')
         
+        # Resize to 224x224 for ResNet
+        resize = transforms.Resize((224, 224))
+        rfp1 = resize(rfp1)
+        halo = resize(halo)
+        halo_masked = resize(halo_masked)
+        
         rfp1_t = transforms.ToTensor()(rfp1)
         halo_t = transforms.ToTensor()(halo)
         halo_masked_t = transforms.ToTensor()(halo_masked)
@@ -81,9 +91,11 @@ class ThreeChannelClassifier(pl.LightningModule):
         self.save_hyperparameters()
         
         # Easy architecture swap: resnet18, resnet34, resnet50
+        # FIXED: Train from scratch - ImageNet pretraining expects RGB correlation,
+        # but our channels are independent fluorescence signals (RFP1, Halo, Halo_masked)
         self.model = timm.create_model(
             architecture,
-            pretrained=True,
+            pretrained=True,  # Use ImageNet pretraining like A2screen
             num_classes=num_classes
         )
         
@@ -159,12 +171,12 @@ class ThreeChannelClassifier(pl.LightningModule):
         print("PER-CLASS ACCURACY")
         print("="*70)
         for i, (name, acc) in enumerate(zip(self.class_names, per_class_acc)):
-            print(f"{name:20s}: {acc:.3f}")
+            print(f"{name:<20}: {acc:.3f}")
         
         # Print confusion matrix
         cm = self.confusion_matrix.compute().cpu().numpy()
         print("\nConfusion Matrix:")
-        print(f"{'':20s} {'Pred ' + self.class_names[0]:20s} {'Pred ' + self.class_names[1]:20s}")
+        print(f"{'':20s} {'Pred ' + str(str(self.class_names[0])):20s} {'Pred ' + str(str(self.class_names[1])):20s}")
         for i, name in enumerate(self.class_names):
             print(f"{'True ' + name:20s} {cm[i, 0]:20d} {cm[i, 1]:20d}")
         print("="*70)
@@ -191,93 +203,115 @@ class ThreeChannelDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         
     def setup(self, stage=None):
-        metadata = pd.read_csv(self.metadata_path)
-        
-        unique_labels = sorted(metadata['class_label'].unique())
+        # Check if pre-made splits exist (test.csv and val.csv in same directory)
+        metadata_path = Path(self.metadata_path)
+        test_csv = metadata_path.parent / 'test.csv'
+        val_csv = metadata_path.parent / 'val.csv'
+
+        print(f"\n{'='*70}")
+        print("DATASET SPLIT DETECTION")
+        print(f"{'='*70}")
+        print(f"Metadata path: {self.metadata_path}")
+        print(f"Looking for test.csv at: {test_csv}")
+        print(f"Looking for val.csv at: {val_csv}")
+        print(f"Test.csv exists: {test_csv.exists()}")
+        print(f"Val.csv exists: {val_csv.exists()}")
+
+        if test_csv.exists() and val_csv.exists():
+            print(f"\n{'✓'*35}")
+            print("✓ PRE-MADE SPLITS DETECTED - USING EXISTING FILES")
+            print(f"{'✓'*35}\n")
+            train_df = pd.read_csv(self.metadata_path)
+            val_df = pd.read_csv(val_csv)
+            test_df = pd.read_csv(test_csv)
+
+            print(f"Loaded train.csv: {len(train_df)} samples")
+            print(f"Loaded val.csv: {len(val_df)} samples")
+            print(f"Loaded test.csv: {len(test_df)} samples")
+        else:
+            print(f"\n{'⚠'*35}")
+            print("⚠ NO PRE-MADE SPLITS FOUND - CREATING INTERNAL SPLITS")
+            print(f"{'⚠'*35}\n")
+            metadata = pd.read_csv(self.metadata_path)
+
+            # Original splitting logic here...
+            if 'neuron_id' in metadata.columns:
+                print("Using NEURON-based stratification")
+                unique_neurons = metadata['neuron_id'].unique()
+                neuron_labels = metadata.groupby('neuron_id')['class_label'].agg(
+                    lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]
+                )
+                neurons_train_val, neurons_test = train_test_split(
+                    unique_neurons, test_size=0.15, random_state=42,
+                    stratify=neuron_labels
+                )
+                neuron_labels_train_val = neuron_labels[neurons_train_val]
+                neurons_train, neurons_val = train_test_split(
+                    neurons_train_val, test_size=0.15/(1-0.15), random_state=42,
+                    stratify=neuron_labels_train_val
+                )
+                train_df = metadata[metadata['neuron_id'].isin(neurons_train)]
+                val_df = metadata[metadata['neuron_id'].isin(neurons_val)]
+                test_df = metadata[metadata['neuron_id'].isin(neurons_test)]
+            else:
+                # Well-based stratification
+                print("Using WELL-based stratification")
+                unique_wells = metadata['well_name'].unique()
+                well_labels = metadata.groupby('well_name')['class_label'].agg(
+                    lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]
+                )
+                wells_train_val, wells_test = train_test_split(
+                    unique_wells, test_size=0.15, random_state=42,
+                    stratify=well_labels
+                )
+                well_labels_train_val = well_labels[wells_train_val]
+                wells_train, wells_val = train_test_split(
+                    wells_train_val, test_size=0.15/(1-0.15), random_state=42,
+                    stratify=well_labels_train_val
+                )
+                train_df = metadata[metadata['well_name'].isin(wells_train)]
+                val_df = metadata[metadata['well_name'].isin(wells_val)]
+                test_df = metadata[metadata['well_name'].isin(wells_test)]
+
+        # Common processing for both paths
+        all_df = pd.concat([train_df, val_df, test_df])
+        unique_labels = sorted(all_df['class_label'].unique())
         label_to_idx = {label: idx for idx, label in enumerate(unique_labels)}
-        metadata['label_idx'] = metadata['class_label'].map(label_to_idx)
-        
+
+        train_df['label_idx'] = train_df['class_label'].map(label_to_idx)
+        val_df['label_idx'] = val_df['class_label'].map(label_to_idx)
+        test_df['label_idx'] = test_df['class_label'].map(label_to_idx)
+
         self.num_classes = len(unique_labels)
         self.class_names = unique_labels
-        
-        # Calculate class weights for imbalanced dataset
-        class_counts = metadata['class_label'].value_counts()
-        total = len(metadata)
+
+        # Calculate class weights from training set
+        class_counts = train_df['class_label'].value_counts()
+        total = len(train_df)
         self.class_weights = torch.tensor([
             total / class_counts[label] for label in unique_labels
         ], dtype=torch.float32)
-        
-        print(f"\nClasses: {unique_labels}")
-        print(f"Class counts: {class_counts.to_dict()}")
-        print(f"Class weights: {self.class_weights.numpy()}")
 
-        # Stratification strategy: neuron-based for reversion, well-based otherwise
-        # This prevents data leakage while handling mixed-class scenarios
-        if 'neuron_id' in metadata.columns:
-            # Neuron-based stratification (for reversion datasets with temporal pairs)
-            print("\n⚠️  Using NEURON-based stratification (keeps temporal pairs together)")
-            unique_neurons = metadata['neuron_id'].unique()
+        print(f"\n{'='*70}")
+        print("DATASET SUMMARY")
+        print(f"{'='*70}")
+        print(f"Classes: {list(unique_labels)}")
+        print(f"Number of classes: {len(unique_labels)}")
+        print(f"\nSplit sizes:")
+        print(f"  Train: {len(train_df):5d} samples")
+        print(f"  Val:   {len(val_df):5d} samples")
+        print(f"  Test:  {len(test_df):5d} samples")
+        print(f"\nClass distribution:")
+        print(f"  Train: {dict(train_df['class_label'].value_counts().sort_index())}")
+        print(f"  Val:   {dict(val_df['class_label'].value_counts().sort_index())}")
+        print(f"  Test:  {dict(test_df['class_label'].value_counts().sort_index())}")
+        print(f"{'='*70}\n")
 
-            # Use majority class per neuron for stratification
-            neuron_labels = metadata.groupby('neuron_id')['class_label'].agg(
-                lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]
-            )
-
-            neurons_train_val, neurons_test = train_test_split(
-                unique_neurons, test_size=0.15, random_state=42,
-                stratify=neuron_labels
-            )
-
-            neuron_labels_train_val = neuron_labels[neurons_train_val]
-            neurons_train, neurons_val = train_test_split(
-                neurons_train_val, test_size=0.15/(1-0.15), random_state=42,
-                stratify=neuron_labels_train_val
-            )
-
-            train_df = metadata[metadata['neuron_id'].isin(neurons_train)]
-            val_df = metadata[metadata['neuron_id'].isin(neurons_val)]
-            test_df = metadata[metadata['neuron_id'].isin(neurons_test)]
-
-        else:
-            # Well-based stratification (standard case)
-            print("\n⚠️  Using WELL-based stratification")
-            unique_wells = metadata['well'].unique()
-
-            # Use majority class per well (not .first()!)
-            well_labels = metadata.groupby('well')['class_label'].agg(
-                lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]
-            )
-
-            wells_train_val, wells_test = train_test_split(
-                unique_wells, test_size=0.15, random_state=42, stratify=well_labels
-            )
-
-            well_labels_train_val = well_labels[wells_train_val]
-            wells_train, wells_val = train_test_split(
-                wells_train_val, test_size=0.15/(1-0.15), random_state=42,
-                stratify=well_labels_train_val
-            )
-
-            train_df = metadata[metadata['well'].isin(wells_train)]
-            val_df = metadata[metadata['well'].isin(wells_val)]
-            test_df = metadata[metadata['well'].isin(wells_test)]
-
-        print(f"Samples: Train={len(train_df)}, Val={len(val_df)}, Test={len(test_df)}")
-
-        # Verify stratification balance
-        train_dist = train_df['class_label'].value_counts(normalize=True).sort_index()
-        val_dist = val_df['class_label'].value_counts(normalize=True).sort_index()
-        test_dist = test_df['class_label'].value_counts(normalize=True).sort_index()
-
-        print("\nClass distribution:")
-        print(f"Train: {dict(train_dist)}")
-        print(f"Val:   {dict(val_dist)}")
-        print(f"Test:  {dict(test_dist)}")
-        
+        # Create datasets (FIXED: removed duplicate code)
         self.train_dataset = ThreeChannelDataset(train_df, self.root_dir, is_train=True)
         self.val_dataset = ThreeChannelDataset(val_df, self.root_dir, is_train=False)
         self.test_dataset = ThreeChannelDataset(test_df, self.root_dir, is_train=False)
-    
+
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
